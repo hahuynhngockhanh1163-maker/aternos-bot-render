@@ -1,0 +1,22 @@
+{
+  "name": "minecraft-afk-bot",
+  "version": "1.0.0",
+  "description": "A Minecraft AFK bot using mineflayer",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node server.js && node bot.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "mineflayer": "^4.33.0",
+    "node-fetch": "^2.6.11"
+  },
+  "keywords": [
+    "minecraft",
+    "bot",
+    "afk",
+    "mineflayer"
+  ],
+  "author": "",
+  "license": "MIT"
+}
