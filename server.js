@@ -1,16 +1,21 @@
-// Gọi thư viện express
-const express = require("express");
+// server.js
+const express = require('express');
 const app = express();
-
-// Cổng mà Replit sẽ chạy (Replit sẽ tự dùng process.env.PORT)
 const port = process.env.PORT || 3000;
 
-// Route mặc định để kiểm tra server hoạt động
-app.get("/", (req, res) => {
-  res.send("✅ Server đang chạy!");
+// simple webpage for UptimeRobot
+app.get('/', (req, res) => {
+  res.send('✅ Minecraft AFK Bot is running 24/7!');
 });
 
-// Lắng nghe cổng
-app.listen(port, () => {
-  console.log(`🌍 Web server đang chạy tại cổng ${port}`);
+// health endpoint
+app.get('/healthz', (req, res) => {
+  res.send('OK');
 });
+
+app.listen(port, () => {
+  console.log(`🌍 Web server running on port ${port}`);
+});
+
+// start the bot in the same process
+require('./bot');
