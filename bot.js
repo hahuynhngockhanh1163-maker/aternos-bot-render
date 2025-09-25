@@ -1,73 +1,72 @@
-const mineflayer = require("mineflayer");
+// bot.js
+const mineflayer = require('mineflayer');
 
-const HOST = "minecraftsinhto-MQmj.aternos.me"; // đổi thành host Aternos của bạn
-const PORT = 19484; 
-const BOT_NAME = "AFK_Bot_01";
+const HOST = process.env.MC_HOST || 'minecraftsinhto-MQmj.aternos.me'; // thay nếu cần
+const PORT = parseInt(process.env.MC_PORT || '19484', 10);
+const BOT_NAME = process.env.BOT_NAME || 'AFK_Bot_01';
+const AUTH = process.env.MC_AUTH || 'offline'; // 'mojang' or 'offline'
+const CHAT_MS = parseInt(process.env.CHAT_INTERVAL_MS || (5 * 60 * 1000), 10); // 5 phút
+const JUMP_MS = parseInt(process.env.JUMP_INTERVAL_MS || (60 * 1000), 10); // 60s
 
-// Các khoảng thời gian
-const CHAT_INTERVAL_MS = 4 * 60 * 1000;   // 4 phút
-const JUMP_INTERVAL_MS = 45 * 1000;       // 45s
-const LOOK_INTERVAL_MS = 35 * 1000;       // 35s
-const WALK_INTERVAL_MS = 2 * 60 * 1000;   // 2 phút
-
-function createBot() {
+function createBot(){
+  console.log('Tạo bot mới ->', BOT_NAME, HOST+':'+PORT, 'auth=' + AUTH);
   const bot = mineflayer.createBot({
     host: HOST,
     port: PORT,
-    username: BOT_NAME
+    username: BOT_NAME,
+    auth: AUTH
+    // nếu muốn cố định version, thêm: version: '1.20.4'
   });
 
-  bot.on("login", () => {
-    console.log(`[${new Date().toLocaleTimeString()}] Bot ${BOT_NAME} đã login vào ${HOST}:${PORT}`);
-    bot.chat("/gamemode creative"); // nếu bạn có OP
+  // save intervals để clear khi bot disconnect
+  let intervals = [];
+
+  bot.on('login', () => {
+    console.log('✅ [' + new Date().toLocaleTimeString() + '] Bot "'+BOT_NAME+'" đã login vào', HOST+':'+PORT);
+    // thử set creative (chỉ thành công nếu bot có quyền)
+    try {
+      bot.chat('/gamemode creative'); // nếu server cho phép
+    } catch (e) {
+      // không sao
+    }
+
+    // chat mỗi CHAT_MS
+    intervals.push(setInterval(() => {
+      if (bot && bot.chat) {
+        bot.chat('Mình đang AFK giữ server online đây 🛡️');
+      }
+    }, CHAT_MS));
+
+    // nhảy mỗi JUMP_MS (giữ hoạt động)
+    intervals.push(setInterval(() => {
+      try {
+        bot.setControlState('jump', true);
+        setTimeout(() => bot.setControlState('jump', false), 500);
+      } catch (e) {}
+    }, JUMP_MS));
   });
 
-  // Chat giữ online
-  setInterval(() => {
-    if (bot.players) {
-      bot.chat("Mình đang AFK giữ server online đây 😎");
-    }
-  }, CHAT_INTERVAL_MS);
+  bot.on('spawn', () => {
+    console.log('Bot đã spawn trong thế giới — bắt đầu hành vi AFK');
+  });
 
-  // Nhảy
-  setInterval(() => {
-    if (bot.player) {
-      bot.setControlState("jump", true);
-      setTimeout(() => bot.setControlState("jump", false), 300 + Math.random() * 700);
-    }
-  }, JUMP_INTERVAL_MS);
-
-  // Nhìn xung quanh
-  setInterval(() => {
-    if (bot.player && bot.entity) {
-      const yaw = (Math.random() - 0.5) * Math.PI * 2;
-      const pitch = (Math.random() - 0.5) * 0.5;
-      bot.look(yaw, pitch, true);
-    }
-  }, LOOK_INTERVAL_MS);
-
-  // Đi bộ
-  setInterval(() => {
-    if (bot.player) {
-      const directions = ["forward", "back", "left", "right"];
-      const dir = directions[Math.floor(Math.random() * directions.length)];
-      bot.setControlState(dir, true);
-
-      setTimeout(() => {
-        bot.setControlState(dir, false);
-      }, 2000 + Math.random() * 2000);
-    }
-  }, WALK_INTERVAL_MS);
-
-  // Reconnect khi bị kick/tắt
-  bot.on("end", () => {
-    console.log("⚠️ Bot bị kick, sẽ tự reconnect sau 5s...");
+  bot.on('end', () => {
+    console.log('🔁 Kết nối bị đóng — sẽ thử kết nối lại sau 5s');
+    intervals.forEach(clearInterval);
     setTimeout(createBot, 5000);
   });
 
-  bot.on("error", (err) => {
-    console.log("❌ Lỗi bot:", err.message);
+  bot.on('error', (err) => {
+    console.log('⚠️ Lỗi bot:', err && err.message ? err.message : err);
   });
+
+  // optional: log kick reason
+  bot.on('kicked', (reason) => {
+    console.log('⚠️ Bot bị kick khỏi server:', reason);
+  });
+
+  return bot;
 }
 
+// start lần đầu
 createBot();
